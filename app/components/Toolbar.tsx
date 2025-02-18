@@ -1,27 +1,29 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Image } from "react-native";
 import { useAuth } from "../context/AuthContext";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
-// Definindo as rotas da aplicação
 type RootStackParamList = {
-  Login: undefined; // A tela de login não precisa de parâmetros
-  Home: undefined;  // Exemplo: caso tenha uma tela "Home"
-  Profile: undefined;  // Exemplo: caso tenha uma tela "Home"
-
+  Login: undefined; 
+  Home: undefined;  
+  Profile: undefined;  
 };
 
-// Tipagem correta do navigation
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const Toolbar: React.FC = () => {
   const { user, logout } = useAuth();
-  const navigation = useNavigation<NavigationProp>(); // Tipagem correta
+  const navigation = useNavigation<NavigationProp>();
 
   return (
     <View style={styles.toolbar}>
-      <Text style={styles.message}>Bem-vindo ao EducaHub</Text>
+      <TouchableOpacity onPress={() => navigation.navigate("Home")}>
+        <Image 
+          source={require('../assets/images/LOGO_EDUCAHUB_2.png')} 
+          style={styles.logo} 
+        />
+      </TouchableOpacity>
 
       {user ? (
         <View style={styles.userContainer}>
@@ -47,12 +49,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "#6200ea",
-    padding: 15,
+    backgroundColor: "#1f2937",
+    padding: 10,
   },
-  message: {
-    color: "#fff",
-    fontSize: 16,
+  logo: {
+    height: 40,
+    width: 120, 
+    resizeMode: "contain", 
   },
   userContainer: {
     flexDirection: "row",
@@ -63,10 +66,11 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   button: {
-    backgroundColor: "#3700b3",
+    backgroundColor: "blue",
     paddingVertical: 5,
     paddingHorizontal: 15,
     borderRadius: 5,
+    marginLeft: 4,
   },
   buttonText: {
     color: "#fff",

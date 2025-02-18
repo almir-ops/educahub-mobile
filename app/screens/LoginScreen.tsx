@@ -12,13 +12,24 @@ const LoginScreen = () => {
 
   const handleLogin = async () => {
     try {
-      await login(email, password); // Enviando email e senha corretamente
-      navigation.navigate('Home'); // Redireciona para a Home após login bem-sucedido
-    } catch (error:any) {
-      Alert.alert('Erro de Login', error.message || 'Ocorreu um erro ao fazer login');
+      const success: boolean = await login(email, password); 
+      if (success) {
+        console.log(success);
+      } else {
+  
+        setTimeout(() => {
+          Alert.alert("Erro de Login", "Usuário ou senha incorretos");
+        }, 100);
+      }
+    } catch (error: any) {
+      setTimeout(() => {
+        Alert.alert("Erro de Login", error.message || "Usuário ou senha incorretos");
+      }, 100);
     }
   };
+  
 
+  
   return (
     <View style={styles.container}>
       <Image source={require('../assets/images/LOGO_EDUCAHUB_2.png')} style={styles.logo} />

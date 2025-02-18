@@ -4,12 +4,12 @@ import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../context/AuthContext";
 import { jwtDecode, JwtPayload } from "jwt-decode";
 import { API_URL } from "../config/api";
-import AsyncStorage from "@react-native-async-storage/async-storage"; // Importando AsyncStorage
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from 'react-native';
 import RNPickerSelect from 'react-native-picker-select';
 
 interface CustomJwtPayload extends JwtPayload {
-  id: string; // Tipo de dado do ID no token
+  id: string; 
 }
 
 const ProfileScreen = () => {
@@ -17,17 +17,19 @@ const ProfileScreen = () => {
   const [posts, setPosts] = useState<any>([]);
   const [categories, setCategories] = useState<any>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [modalVisible, setModalVisible] = useState<boolean>(false); // Estado do modal
-  const [newPostTitle, setNewPostTitle] = useState<string>(""); // Título do novo post
-  const [newPostContent, setNewPostContent] = useState<string>(""); // Conteúdo do novo post
-  const [categoryId, setCategoryId] = useState<string>(""); // Categoria selecionada
+  const [modalVisible, setModalVisible] = useState<boolean>(false); 
+  const [newPostTitle, setNewPostTitle] = useState<string>(""); 
+  const [newPostContent, setNewPostContent] = useState<string>(""); 
+  const [categoryId, setCategoryId] = useState<string>(""); 
+  const [isEditing, setIsEditing] = useState<boolean>(false); 
+  const [currentPost, setCurrentPost] = useState<any>(null); 
   const { user } = useAuth();
   const navigation = useNavigation<any>();
 
   useEffect(() => {
     const getUserIdFromToken = async () => {
       try {
-        const token = await AsyncStorage.getItem('@user'); // Usando AsyncStorage
+        const token = await AsyncStorage.getItem('@user'); 
         if (token) {
           const decoded = jwtDecode<CustomJwtPayload>(token);
           return decoded.id;
@@ -121,32 +123,40 @@ const ProfileScreen = () => {
   };
 
   const openEditPostModal = (post: any) => {
-    navigation.navigate("EditPost", { post });
+    setCurrentPost(post); 
+    setNewPostTitle(post.title); 
+    setNewPostContent(post.content); 
+    setCategoryId(post.categoryId); 
+    setIsEditing(true); 
+    setModalVisible(true); 
   };
 
   const openCreatePostModal = () => {
-    setModalVisible(true); // Abre o modal
+    setCurrentPost(null); 
+    setNewPostTitle("");
+    setNewPostContent("");
+    setCategoryId(""); 
+    setIsEditing(false);
+    setModalVisible(true);
   };
 
   const createNewPost = async () => {
-    if (newPostTitle && newPostContent && categoryId) { // Verificando se a categoria foi selecionada
+    if (newPostTitle && newPostContent && categoryId) {
       try {
-        console.log('das');
-
         const response = await fetch(`${API_URL}/posts`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            title: 'newPostTitle',
+            title: newPostTitle,
             content: newPostContent,
-            categoryId: categoryId, // Incluindo categoria no corpo da requisição
+            categoryId: categoryId,
             userId: userData.id,
-            author: userData.name
-        }),
-    });
-        
+            author: userData.name,
+          }),
+        });
+
         if (!response.ok) {
           throw new Error("Erro ao criar post");
         }
@@ -159,6 +169,40 @@ const ProfileScreen = () => {
     }
   };
 
+  const updatePost = async () => {
+    if (newPostTitle && newPostContent && categoryId && currentPost) {
+      try {
+        const response = await fetch(`${API_URL}/posts/${currentPost.id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            title: newPostTitle,
+            content: newPostContent,
+            categoryId: categoryId,
+            author: userData.name, 
+            userId: userData.id,  
+          }),
+        });
+  
+        if (!response.ok) {
+          // Captura a mensagem de erro da API
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Erro ao atualizar post");
+        }
+  
+        const updatedPost = await response.json();
+        setPosts(posts.map((post: any) => (post.id === updatedPost.id ? updatedPost : post))); // Atualiza o post na lista
+        setModalVisible(false); // Fecha o modal
+      } catch (error: any) {
+        console.error("Erro ao atualizar post:", error.message); // Exibe a mensagem de erro no console
+      }
+    }
+  };
+
+  
+
   if (isLoading) {
     return <ActivityIndicator size="large" color="#0000ff" />;
   }
@@ -167,9 +211,9 @@ const ProfileScreen = () => {
     <View style={{ flex: 1, padding: 16 }}>
       {userData && (
         <View style={{ marginBottom: 24 }}>
-          <Text style={{ fontSize: 24, fontWeight: "bold" }}>Perfil de {userData.name}</Text>
-          <Text style={{ fontSize: 18, marginVertical: 8 }}>Email: {userData.email}</Text>
-          <Button title="Editar Perfil" onPress={() => handleEditUser({ name: "Novo Nome", email: "novoemail@example.com" })} />
+          <Text style={{ fontSize: 24, fontWeight: "bold" }}>Perfil de Professor</Text>
+          <Text style={{ fontSize: 18, marginVertical: 8 }}>Nome: {userData.name}</Text>
+          <Text style={{ fontSize: 18, marginVertical: 2 }}>Email: {userData.email}</Text>
         </View>
       )}
 
@@ -178,11 +222,15 @@ const ProfileScreen = () => {
         <Button title="Criar Novo Post" onPress={openCreatePostModal} />
         {posts && posts.length > 0 ? (
           posts.map((post: any) => (
-            <View key={post.id} style={{ marginBottom: 16, padding: 12, backgroundColor: "#fff", borderRadius: 8 }}>
+            <View key={post.id} style={{ marginTop: 10, marginBottom: 16, padding: 12, backgroundColor: "#fff", borderRadius: 8 }}>
               <Text style={{ fontSize: 18, fontWeight: "bold" }}>{post.title}</Text>
               <Text>{post.content}</Text>
-              <Button title="Editar" onPress={() => openEditPostModal(post)} />
-              <Button title="Excluir" onPress={() => handleDeletePost(post.id)} color="red" />
+              <View style={{ marginTop: 10 }}>
+                <Button title="Editar" onPress={() => openEditPostModal(post)} />
+              </View>
+              <View style={{ marginTop: 10 }}>
+                <Button title="Excluir" onPress={() => handleDeletePost(post.id)} color="red" />
+              </View>
             </View>
           ))
         ) : (
@@ -190,14 +238,16 @@ const ProfileScreen = () => {
         )}
       </View>
 
-      {/* Modal para criar novo post */}
+      {/* Modal para criar/editar post */}
       <Modal
         visible={modalVisible}
         animationType="slide"
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={{ flex: 1, justifyContent: "center", padding: 16 }}>
-          <Text style={{ fontSize: 24, fontWeight: "bold", marginBottom: 16 }}>Criar Novo Post</Text>
+          <Text style={{ fontSize: 24, fontWeight: "bold", marginBottom: 16 }}>
+            {isEditing ? "Editar Post" : "Criar Novo Post"}
+          </Text>
           <TextInput
             placeholder="Título do Post"
             value={newPostTitle}
@@ -215,7 +265,7 @@ const ProfileScreen = () => {
           <View>
             <Text>Selecione uma categoria</Text>
             {Platform.OS === 'web' ? (
-              <select onChange={(e) => setCategoryId(e.target.value)}>
+              <select onChange={(e) => setCategoryId(e.target.value)} value={categoryId}>
                 {categories.map((category: any) => (
                   <option key={category.id} value={category.id}>{category.name}</option>
                 ))}
@@ -227,12 +277,18 @@ const ProfileScreen = () => {
                   label: category.name,
                   value: category.id,
                 }))}
+                value={categoryId}
               />
             )}
           </View>
-          
-          <Button title="Criar Post" onPress={createNewPost} />
-          <Button title="Cancelar" onPress={() => setModalVisible(false)} />
+
+          <Button
+            title={isEditing ? "Atualizar Post" : "Criar Post"}
+            onPress={isEditing ? updatePost : createNewPost}
+          />
+          <View style={{ marginTop: 10 }}>
+            <Button title="Cancelar" onPress={() => setModalVisible(false)} />
+          </View>
         </View>
       </Modal>
     </View>

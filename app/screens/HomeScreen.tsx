@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, TouchableOpacity, FlatList, Modal, StyleSheet } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, FlatList, Modal, StyleSheet, ActivityIndicator } from "react-native";
 import { API_URL } from "../config/api";
 
 export default function PostList() {
@@ -9,29 +9,37 @@ export default function PostList() {
   const [filterCategory, setFilterCategory] = useState("");
   const [filterTitle, setFilterTitle] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const [loading, setLoading] = useState(false); 
 
   useEffect(() => {
-    let isMounted = true; // Flag para verificar se o componente está montado
+    let isMounted = true;
 
-    fetch(`${API_URL}/categories`)
-      .then((response) => response.json())
-      .then((data) => {
-        if (isMounted) setCategories(data); // Só atualiza se o componente estiver montado
-      })
-      .catch((error) => console.error("Erro ao buscar categorias:", error));
+    const fetchData = async () => {
+      setLoading(true); 
 
-    fetch(`${API_URL}/posts`)
-      .then((response) => response.json())
-      .then((data) => {
+      try {
+        const categoriesResponse = await fetch(`${API_URL}/categories`);
+        const categoriesData = await categoriesResponse.json();
+
+        const postsResponse = await fetch(`${API_URL}/posts`);
+        const postsData = await postsResponse.json();
+
         if (isMounted) {
-          setPosts(data);
-          setFilteredPosts(data);
+          setCategories(categoriesData);
+          setPosts(postsData);
+          setFilteredPosts(postsData);
         }
-      })
-      .catch((error) => console.error("Erro ao buscar posts:", error));
+      } catch (error) {
+        console.error("Erro ao buscar dados:", error);
+      } finally {
+        setLoading(false); 
+      }
+    };
+
+    fetchData();
 
     return () => {
-      isMounted = false; // Quando o componente desmonta, desabilitamos a atualização do estado
+      isMounted = false;
     };
   }, []);
 
@@ -51,6 +59,12 @@ export default function PostList() {
 
   return (
     <View style={styles.container}>
+      {loading && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#ffffff" />
+        </View>
+      )}
+
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.input}
@@ -61,9 +75,6 @@ export default function PostList() {
         <TouchableOpacity style={styles.button} onPress={handleFilter}>
           <Text style={styles.buttonText}>Pesquisar</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.button} onPress={() => setShowModal(true)}>
-          <Text style={styles.buttonText}>Filtro</Text>
-        </TouchableOpacity>
       </View>
 
       <FlatList
@@ -72,7 +83,8 @@ export default function PostList() {
         renderItem={({ item }) => (
           <View style={styles.postCard}>
             <Text style={styles.postTitle}>{item.title}</Text>
-            <Text style={styles.postCategory}>{item.categoryName}</Text>
+            <Text style={styles.postCategory}>{item.Category.name}</Text>
+            <Text style={styles.postContent}>{item.content}</Text>
           </View>
         )}
       />
@@ -103,8 +115,20 @@ const styles = StyleSheet.create({
   buttonText: { color: "white" },
   postCard: { padding: 16, borderWidth: 1, borderColor: "#ddd", marginBottom: 8, borderRadius: 5 },
   postTitle: { fontSize: 16, fontWeight: "bold" },
+  postContent: { fontSize: 16, marginTop: 8, color: "gray"},
   postCategory: { fontSize: 14, color: "gray" },
   modalContainer: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.5)" },
   modalContent: { backgroundColor: "white", padding: 20, borderRadius: 5, width: "80%" },
-  categoryItem: { padding: 10, fontSize: 16, borderBottomWidth: 1, borderBottomColor: "#ddd" }
+  categoryItem: { padding: 10, fontSize: 16, borderBottomWidth: 1, borderBottomColor: "#ddd" },
+  loadingContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 999,
+  }
 });
